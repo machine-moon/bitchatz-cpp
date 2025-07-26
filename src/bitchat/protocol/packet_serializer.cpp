@@ -603,4 +603,159 @@ void PacketSerializer::parseChannelAnnouncePayload(const std::vector<uint8_t> &p
     }
 }
 
+std::vector<uint8_t> PacketSerializer::makeVersionHelloPayload(const std::vector<uint8_t> &supportedVersions, uint8_t preferredVersion, const std::string &clientVersion, const std::string &platform, const std::vector<std::string> &capabilities)
+{
+    std::vector<uint8_t> data;
+
+    // Flags byte: bit 0 = hasCapabilities
+    uint8_t flags = 0;
+    if (!capabilities.empty())
+    {
+        flags |= 0x01;
+    }
+    writeUint8(data, flags);
+
+    // Supported versions array
+    writeUint8(data, static_cast<uint8_t>(supportedVersions.size()));
+    for (uint8_t version : supportedVersions)
+    {
+        writeUint8(data, version);
+    }
+
+    // Preferred version
+    writeUint8(data, preferredVersion);
+
+    // Client version (string with length prefix)
+    writeUint8(data, static_cast<uint8_t>(std::min(static_cast<size_t>(255), clientVersion.length())));
+    data.insert(data.end(), clientVersion.begin(), clientVersion.begin() + std::min(static_cast<size_t>(255), clientVersion.length()));
+
+    // Platform (string with length prefix)
+    writeUint8(data, static_cast<uint8_t>(std::min(static_cast<size_t>(255), platform.length())));
+    data.insert(data.end(), platform.begin(), platform.begin() + std::min(static_cast<size_t>(255), platform.length()));
+
+    // Capabilities (if present)
+    if (!capabilities.empty())
+    {
+        writeUint8(data, static_cast<uint8_t>(capabilities.size()));
+        for (const std::string &capability : capabilities)
+        {
+            writeUint8(data, static_cast<uint8_t>(std::min(static_cast<size_t>(255), capability.length())));
+            data.insert(data.end(), capability.begin(), capability.begin() + std::min(static_cast<size_t>(255), capability.length()));
+        }
+    }
+
+    return data;
+}
+
+void PacketSerializer::parseVersionHelloPayload(const std::vector<uint8_t> &payload, std::vector<uint8_t> &supportedVersions, uint8_t &preferredVersion, std::string &clientVersion, std::string &platform, std::vector<std::string> &capabilities)
+{
+    // Minimum size check: flags(1) + versionCount(1) + at least one version(1) + preferredVersion(1) + min strings
+    if (payload.size() < 4)
+    {
+        spdlog::error("Version hello payload too short");
+        return;
+    }
+
+    size_t offset = 0;
+
+    // Flags byte
+    uint8_t flags = readUint8(payload, offset);
+    bool hasCapabilities = (flags & 0x01) != 0;
+
+    // Supported versions count
+    uint8_t versionCount = readUint8(payload, offset);
+    supportedVersions.clear();
+
+    for (uint8_t i = 0; i < versionCount; i++)
+    {
+        if (offset >= payload.size())
+        {
+            spdlog::error("Version hello payload buffer overflow reading supported versions");
+            return;
+        }
+
+        supportedVersions.push_back(readUint8(payload, offset));
+    }
+
+    // Preferred version
+    if (offset >= payload.size())
+    {
+        spdlog::error("Version hello payload buffer overflow reading preferred version");
+        return;
+    }
+
+    preferredVersion = readUint8(payload, offset);
+
+    // Client version (string with length prefix)
+    if (offset >= payload.size())
+    {
+        spdlog::error("Version hello payload buffer overflow reading client version length");
+        return;
+    }
+
+    uint8_t clientVersionLen = readUint8(payload, offset);
+
+    if (offset + clientVersionLen > payload.size())
+    {
+        spdlog::error("Version hello payload buffer overflow reading client version");
+        return;
+    }
+
+    clientVersion = std::string(payload.begin() + offset, payload.begin() + offset + clientVersionLen);
+    offset += clientVersionLen;
+
+    // Platform (string with length prefix)
+    if (offset >= payload.size())
+    {
+        spdlog::error("Version hello payload buffer overflow reading platform length");
+        return;
+    }
+
+    uint8_t platformLen = readUint8(payload, offset);
+
+    if (offset + platformLen > payload.size())
+    {
+        spdlog::error("Version hello payload buffer overflow reading platform");
+        return;
+    }
+
+    platform = std::string(payload.begin() + offset, payload.begin() + offset + platformLen);
+    offset += platformLen;
+
+    // Capabilities (if present)
+    capabilities.clear();
+
+    if (hasCapabilities)
+    {
+        if (offset >= payload.size())
+        {
+            spdlog::error("Version hello payload buffer overflow reading capabilities count");
+            return;
+        }
+
+        uint8_t capCount = readUint8(payload, offset);
+
+        for (uint8_t i = 0; i < capCount; i++)
+        {
+            if (offset >= payload.size())
+            {
+                spdlog::error("Version hello payload buffer overflow reading capability length");
+                return;
+            }
+
+            uint8_t capLen = readUint8(payload, offset);
+
+            if (offset + capLen > payload.size())
+            {
+                spdlog::error("Version hello payload buffer overflow reading capability");
+                return;
+            }
+
+            capabilities.push_back(std::string(payload.begin() + offset, payload.begin() + offset + capLen));
+
+            offset += capLen;
+        }
+    }
+}
+
 } // namespace bitchat

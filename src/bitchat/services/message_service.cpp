@@ -811,6 +811,29 @@ BitchatPacket MessageService::createChannelAnnouncePacket(const std::string &cha
     return packet;
 }
 
+BitchatPacket MessageService::createVersionHelloPacket()
+{
+    PacketSerializer serializer;
+
+    // Supported protocol versions (currently only version 1)
+    std::vector<uint8_t> supportedVersions = {1};
+    uint8_t preferredVersion = 1;
+
+    // No capabilities for now
+    std::vector<std::string> capabilities = {};
+
+    std::vector<uint8_t> payload = serializer.makeVersionHelloPayload(supportedVersions, preferredVersion, constants::CLIENT_VERSION, constants::PLATFORM, capabilities);
+
+    BitchatPacket packet(PKT_TYPE_VERSION_HELLO, payload);
+    packet.setSenderID(StringHelper::stringToVector(BitchatData::shared()->getPeerID()));
+    packet.setTimestamp(DateTimeHelper::getCurrentTimestamp());
+
+    // Set TTL to 1 to ensure the packet is not cached
+    packet.setTTL(1);
+
+    return packet;
+}
+
 std::string MessageService::generateMessageID() const
 {
     return StringHelper::createUUID();

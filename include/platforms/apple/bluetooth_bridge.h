@@ -34,9 +34,10 @@ private:
     std::shared_ptr<bitchat::PacketSerializer> serializer; // Handles packet serialization/deserialization
 
     // Callback function pointers for C++ interface
-    PeerConnectedCallback peerConnectedCallback;       // Called when a peer connects
-    PeerDisconnectedCallback peerDisconnectedCallback; // Called when a peer disconnects
-    PacketReceivedCallback packetReceivedCallback;     // Called when a packet is received
+    PeerConnectedCallback peerConnectedCallback;               // Called when a peer connects
+    PeerDisconnectedCallback peerDisconnectedCallback;         // Called when a peer disconnects
+    PacketReceivedCallback packetReceivedCallback;             // Called when a packet is received
+    PeripheralDiscoveredCallback peripheralDiscoveredCallback; // Called when peripheral is discovered
 
 public:
     /**
@@ -104,6 +105,12 @@ public:
      * @param callback Function to call when a packet is received
      */
     void setPacketReceivedCallback(PacketReceivedCallback callback) override;
+
+    /**
+     * @brief Set callback for peripheral discovery events
+     * @param callback Function to call when peripheral is discovered
+     */
+    void setPeripheralDiscoveredCallback(PeripheralDiscoveredCallback callback) override;
 
     /**
      * @brief Get the number of currently connected peers

@@ -15,6 +15,7 @@ static NSString *const CHARACTERISTIC_UUID = @(bitchat::constants::BLE_CHARACTER
     void (^peerConnectedCallback)(NSString *);            // Callback when a peer connects
     void (^peerDisconnectedCallback)(NSString *);         // Callback when a peer disconnects
     void (^packetReceivedCallback)(NSData *, NSString *); // Callback when a packet is received
+    void (^peripheralDiscoveredCallback)(NSString *);     // Callback when peripheral is discovered
 }
 
 // ============================================================================
@@ -76,6 +77,25 @@ static NSString *const CHARACTERISTIC_UUID = @(bitchat::constants::BLE_CHARACTER
 {
     // Copy to ensure block survives
     packetReceivedCallback = [callback copy];
+}
+
+/**
+ * @brief Getter for peripheral discovered callback
+ * @return The stored callback block
+ */
+- (void (^)(NSString *))peripheralDiscoveredCallback
+{
+    return peripheralDiscoveredCallback;
+}
+
+/**
+ * @brief Setter for peripheral discovered callback
+ * @param callback The callback block to store
+ */
+- (void)setPeripheralDiscoveredCallback:(void (^)(NSString *))callback
+{
+    // Copy to ensure block survives
+    peripheralDiscoveredCallback = [callback copy];
 }
 
 // ============================================================================
@@ -590,6 +610,17 @@ static NSString *const CHARACTERISTIC_UUID = @(bitchat::constants::BLE_CHARACTER
         {
             [self.peripheralCharacteristics setObject:characteristic forKey:peripheral]; // Store characteristic
             [peripheral setNotifyValue:YES forCharacteristic:characteristic];            // Enable notifications
+
+            // Request maximum MTU for faster data transfer
+            // iOS supports up to 512 bytes with BLE 5.0
+            [peripheral maximumWriteValueLengthForType:CBCharacteristicWriteWithoutResponse];
+
+            // Notify C++ code that peripheral is discovered and ready for communication
+            if (self.peripheralDiscoveredCallback)
+            {
+                NSString *peripheralID = peripheral.identifier.UUIDString;
+                self.peripheralDiscoveredCallback(peripheralID);
+            }
         }
     }
 }

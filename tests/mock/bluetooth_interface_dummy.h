@@ -28,6 +28,7 @@ public:
     void setPeerConnectedCallback(PeerConnectedCallback callback) override;
     void setPeerDisconnectedCallback(PeerDisconnectedCallback callback) override;
     void setPacketReceivedCallback(PacketReceivedCallback callback) override;
+    void setPeripheralDiscoveredCallback(PeripheralDiscoveredCallback callback) override;
     size_t getConnectedPeersCount() const override;
 };
 

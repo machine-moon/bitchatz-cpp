@@ -37,10 +37,14 @@ public:
     // Parse channel announce payload
     void parseChannelAnnouncePayload(const std::vector<uint8_t> &payload, std::string &channel, bool &joining);
 
+    // Create version hello payload
+    std::vector<uint8_t> makeVersionHelloPayload(const std::vector<uint8_t> &supportedVersions, uint8_t preferredVersion, const std::string &clientVersion, const std::string &platform, const std::vector<std::string> &capabilities = {});
+
+    // Parse version hello payload
+    void parseVersionHelloPayload(const std::vector<uint8_t> &payload, std::vector<uint8_t> &supportedVersions, uint8_t &preferredVersion, std::string &clientVersion, std::string &platform, std::vector<std::string> &capabilities);
+
     // Create packet with proper fields
-    BitchatPacket makePacket(uint8_t type, const std::vector<uint8_t> &payload,
-                             bool hasRecipient = false, bool hasSignature = false,
-                             const std::string &senderID = "");
+    BitchatPacket makePacket(uint8_t type, const std::vector<uint8_t> &payload, bool hasRecipient, bool hasSignature, const std::string &senderID);
 
 private:
     // Helper functions for serialization

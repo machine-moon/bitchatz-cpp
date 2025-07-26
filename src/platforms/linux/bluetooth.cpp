@@ -27,6 +27,7 @@ LinuxBluetoothNetwork::LinuxBluetoothNetwork()
     , packetReceivedCallback(nullptr)
     , peerConnectedCallback(nullptr)
     , peerDisconnectedCallback(nullptr)
+    , peripheralDiscoveredCallback(nullptr)
 {
     deviceID = hci_get_route(nullptr);
 
@@ -182,6 +183,11 @@ void LinuxBluetoothNetwork::setPacketReceivedCallback(PacketReceivedCallback cal
     packetReceivedCallback = callback;
 }
 
+void LinuxBluetoothNetwork::setPeripheralDiscoveredCallback(PeripheralDiscoveredCallback callback)
+{
+    peripheralDiscoveredCallback = callback;
+}
+
 size_t LinuxBluetoothNetwork::getConnectedPeersCount() const
 {
     std::lock_guard<std::mutex> lock(const_cast<std::mutex &>(socketsMutex));
@@ -246,6 +252,12 @@ void LinuxBluetoothNetwork::scanThreadFunc()
                 if (peerConnectedCallback)
                 {
                     peerConnectedCallback(deviceID);
+                }
+
+                // Notify about peripheral discovery (ready for communication)
+                if (peripheralDiscoveredCallback)
+                {
+                    peripheralDiscoveredCallback(deviceID);
                 }
 
                 std::thread(&LinuxBluetoothNetwork::readerThreadFunc, this, deviceID, s).detach();
@@ -325,6 +337,12 @@ void LinuxBluetoothNetwork::acceptThreadFunc()
         if (peerConnectedCallback)
         {
             peerConnectedCallback(deviceID);
+        }
+
+        // Notify about peripheral discovery (ready for communication)
+        if (peripheralDiscoveredCallback)
+        {
+            peripheralDiscoveredCallback(deviceID);
         }
 
         std::thread(&LinuxBluetoothNetwork::readerThreadFunc, this, deviceID, client).detach();

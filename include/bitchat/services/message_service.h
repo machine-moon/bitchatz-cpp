@@ -59,6 +59,12 @@ public:
     // Centralized packet processing - main entry point for all packets
     void processPacket(const BitchatPacket &packet, const std::string &peripheralID);
 
+    // Utility methods
+    BitchatPacket createMessagePacket(const BitchatMessage &message);
+    BitchatPacket createAnnouncePacket();
+    BitchatPacket createChannelAnnouncePacket(const std::string &channel, bool joining);
+    BitchatPacket createVersionHelloPacket();
+
     // Set callbacks for message events
     using MessageReceivedCallback = std::function<void(const BitchatMessage &)>;
     using ChannelJoinedCallback = std::function<void(const std::string &)>;
@@ -106,9 +112,6 @@ private:
     void processNoiseIdentityAnnouncePacket(const BitchatPacket &packet);
 
     // Utility methods
-    BitchatPacket createMessagePacket(const BitchatMessage &message);
-    BitchatPacket createAnnouncePacket();
-    BitchatPacket createChannelAnnouncePacket(const std::string &channel, bool joining);
     std::string generateMessageID() const;
 
     // Helper methods

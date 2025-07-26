@@ -13,6 +13,12 @@ namespace constants
 const std::string BLE_SERVICE_UUID = "F47B5E2D-4A9E-4C5A-9B3F-8E1D2C3A4B5C";
 const std::string BLE_CHARACTERISTIC_UUID = "A1B2C3D4-E5F6-4A5B-8C9D-0E1F2A3B4C5D";
 
+// Client Version
+const std::string CLIENT_VERSION = "1.0";
+
+// Platform
+const std::string PLATFORM = "cpp";
+
 // BLE Configuration Constants
 const double BLE_SCAN_INTERVAL_SECONDS = 0.1;
 const double BLE_CONNECTION_TIMEOUT_SECONDS = 10.0;

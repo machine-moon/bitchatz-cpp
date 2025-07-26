@@ -56,7 +56,7 @@ bool BitchatManager::initialize(
     BitchatData::shared()->setPeerID(localPeerID);
 
     // Initialize services
-    if (!networkService->initialize(bluetoothNetworkInterface, announceRunner, cleanupRunner))
+    if (!networkService->initialize(bluetoothNetworkInterface, messageService, announceRunner, cleanupRunner))
     {
         spdlog::error("Failed to initialize NetworkService");
         return false;

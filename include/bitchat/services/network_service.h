@@ -19,6 +19,7 @@ namespace bitchat
 class BluetoothAnnounceRunner;
 class CleanupRunner;
 class IBluetoothNetwork;
+class MessageService;
 
 // NetworkService: Manages network operations, peer discovery, and message routing
 class NetworkService
@@ -28,7 +29,7 @@ public:
     ~NetworkService();
 
     // Initialize the network service
-    bool initialize(std::shared_ptr<IBluetoothNetwork> bluetoothNetworkInterface, std::shared_ptr<BluetoothAnnounceRunner> announceRunner, std::shared_ptr<CleanupRunner> cleanupRunner);
+    bool initialize(std::shared_ptr<IBluetoothNetwork> bluetoothNetworkInterface, std::shared_ptr<MessageService> messageService, std::shared_ptr<BluetoothAnnounceRunner> announceRunner, std::shared_ptr<CleanupRunner> cleanupRunner);
 
     // Start network operations
     bool start();
@@ -41,9 +42,6 @@ public:
 
     // Send a packet to a specific peer
     bool sendPacketToPeer(const BitchatPacket &packet, const std::string &peerID);
-
-    // Set the Bluetooth network interface
-    void setBluetoothNetworkInterface(std::shared_ptr<IBluetoothNetwork> bluetoothNetworkInterface);
 
     // Set callbacks
     using PacketReceivedCallback = std::function<void(const BitchatPacket &, const std::string &)>;
@@ -58,6 +56,9 @@ private:
     // Bluetooth interface
     std::shared_ptr<IBluetoothNetwork> bluetoothNetworkInterface;
 
+    // Message service for packet creation
+    std::shared_ptr<MessageService> messageService;
+
     // Runners
     std::shared_ptr<BluetoothAnnounceRunner> announceRunner;
     std::shared_ptr<CleanupRunner> cleanupRunner;
@@ -71,6 +72,7 @@ private:
     void onPeerConnected(const std::string &peripheralID);
     void onPeerDisconnected(const std::string &peripheralID);
     void onPacketReceived(const BitchatPacket &packet, const std::string &peripheralID);
+    void onPeripheralDiscovered(const std::string &peripheralID);
     void relayPacket(const BitchatPacket &packet);
 };
 

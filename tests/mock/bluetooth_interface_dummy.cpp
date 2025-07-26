@@ -53,6 +53,11 @@ void DummyBluetoothNetwork::setPacketReceivedCallback([[maybe_unused]] PacketRec
     // Pass
 }
 
+void DummyBluetoothNetwork::setPeripheralDiscoveredCallback([[maybe_unused]] PeripheralDiscoveredCallback callback)
+{
+    // Pass
+}
+
 size_t DummyBluetoothNetwork::getConnectedPeersCount() const
 {
     return 0;

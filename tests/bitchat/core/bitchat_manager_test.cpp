@@ -23,6 +23,7 @@ TEST(BitchatManagerTest, Initialize)
     EXPECT_CALL(*bluetoothNetwork, setPacketReceivedCallback(::NotNull())).Times(1);
     EXPECT_CALL(*bluetoothNetwork, setPeerConnectedCallback(::NotNull())).Times(1);
     EXPECT_CALL(*bluetoothNetwork, setPeerDisconnectedCallback(::NotNull())).Times(1);
+    EXPECT_CALL(*bluetoothNetwork, setPeripheralDiscoveredCallback(::NotNull())).Times(1);
     EXPECT_CALL(*bluetoothNetwork, initialize()).WillOnce(::testing::Return(true));
     EXPECT_CALL(*bluetoothNetwork, start()).WillOnce(::testing::Return(true));
     EXPECT_CALL(*bluetoothNetwork, sendPacket).WillOnce(::testing::Return(true));
@@ -43,4 +44,7 @@ TEST(BitchatManagerTest, Initialize)
     ASSERT_TRUE(manager->initialize(dummyUserInterface, bluetoothNetwork, networkService, messageService, cryptoService, noiseService, announceRunner, cleanupRunner));
     ASSERT_TRUE(manager->start());
     manager->stop();
+
+    // Allow the mock to leak since it's managed by shared_ptr
+    testing::Mock::AllowLeak(bluetoothNetwork.get());
 }

@@ -57,6 +57,16 @@ AppleBluetoothNetworkBridge::AppleBluetoothNetworkBridge()
                 packetReceivedCallback(packet, cppUUID);
             }
         }];
+
+        // Bridge for peripheral discovery events
+        [impl setPeripheralDiscoveredCallback:^(NSString *peripheralID) {
+            if (peripheralDiscoveredCallback)
+            {
+                // Convert NSString to std::string for C++ callback
+                std::string cppUUID = [peripheralID UTF8String];
+                peripheralDiscoveredCallback(cppUUID);
+            }
+        }];
     }
 }
 
@@ -164,6 +174,12 @@ void AppleBluetoothNetworkBridge::setPacketReceivedCallback(PacketReceivedCallba
 {
     // Store C++ callback function
     packetReceivedCallback = callback;
+}
+
+void AppleBluetoothNetworkBridge::setPeripheralDiscoveredCallback(PeripheralDiscoveredCallback callback)
+{
+    // Store C++ callback function
+    peripheralDiscoveredCallback = callback;
 }
 
 size_t AppleBluetoothNetworkBridge::getConnectedPeersCount() const

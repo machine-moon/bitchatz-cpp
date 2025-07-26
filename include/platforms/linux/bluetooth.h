@@ -28,6 +28,7 @@ public:
     void setPeerConnectedCallback(PeerConnectedCallback callback) override;
     void setPeerDisconnectedCallback(PeerDisconnectedCallback callback) override;
     void setPacketReceivedCallback(PacketReceivedCallback callback) override;
+    void setPeripheralDiscoveredCallback(PeripheralDiscoveredCallback callback) override;
     size_t getConnectedPeersCount() const override;
 
 private:
@@ -46,6 +47,7 @@ private:
     PacketReceivedCallback packetReceivedCallback;
     PeerConnectedCallback peerConnectedCallback;
     PeerDisconnectedCallback peerDisconnectedCallback;
+    PeripheralDiscoveredCallback peripheralDiscoveredCallback;
 
     std::map<std::string, int> connectedSockets;
     std::mutex socketsMutex;

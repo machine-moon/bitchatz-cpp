@@ -8,10 +8,12 @@
 #include "bitchat/protocol/packet_serializer.h"
 #include "bitchat/runners/bluetooth_announce_runner.h"
 #include "bitchat/runners/cleanup_runner.h"
+#include "bitchat/services/message_service.h"
 #include <algorithm>
 #include <chrono>
 #include <ranges>
 #include <spdlog/spdlog.h>
+#include <thread>
 
 namespace bitchat
 {
@@ -26,7 +28,7 @@ NetworkService::~NetworkService()
     stop();
 }
 
-bool NetworkService::initialize(std::shared_ptr<IBluetoothNetwork> bluetoothNetworkInterface, std::shared_ptr<BluetoothAnnounceRunner> announceRunner, std::shared_ptr<CleanupRunner> cleanupRunner)
+bool NetworkService::initialize(std::shared_ptr<IBluetoothNetwork> bluetoothNetworkInterface, std::shared_ptr<MessageService> messageService, std::shared_ptr<BluetoothAnnounceRunner> announceRunner, std::shared_ptr<CleanupRunner> cleanupRunner)
 {
     // Set Bluetooth network interface
     this->bluetoothNetworkInterface = bluetoothNetworkInterface;
@@ -36,6 +38,9 @@ bool NetworkService::initialize(std::shared_ptr<IBluetoothNetwork> bluetoothNetw
         spdlog::error("NetworkService: Bluetooth interface is null");
         return false;
     }
+
+    // Set MessageService
+    this->messageService = messageService;
 
     // Set runners
     this->announceRunner = announceRunner;
@@ -57,6 +62,12 @@ bool NetworkService::initialize(std::shared_ptr<IBluetoothNetwork> bluetoothNetw
     // clang-format off
     bluetoothNetworkInterface->setPeerDisconnectedCallback([this](const std::string &peripheralID) {
         onPeerDisconnected(peripheralID);
+    });
+    // clang-format on
+
+    // clang-format off
+    bluetoothNetworkInterface->setPeripheralDiscoveredCallback([this](const std::string &peripheralID) {
+        onPeripheralDiscovered(peripheralID);
     });
     // clang-format on
 
@@ -182,6 +193,45 @@ void NetworkService::onPeerDisconnected(const std::string &peripheralID)
     }
 }
 
+void NetworkService::onPeripheralDiscovered(const std::string &peripheralID)
+{
+    spdlog::info("Peripheral discovered: {}", peripheralID);
+
+    if (!messageService)
+    {
+        spdlog::warn("MessageService not available, cannot send version/announce packets");
+        return;
+    }
+
+    // Send version hello packet first
+    BitchatPacket versionPacket = messageService->createVersionHelloPacket();
+    if (bluetoothNetworkInterface->sendPacketToPeer(versionPacket, peripheralID))
+    {
+        spdlog::info("Sent version hello packet to {}", peripheralID);
+    }
+    else
+    {
+        spdlog::warn("Failed to send version hello packet to {}", peripheralID);
+    }
+
+    // Send announce packet after a short delay (simulating the Swift code behavior)
+    // Note: In a real implementation, you might want to use a timer or async approach
+    std::thread([this, peripheralID]()
+                {
+        std::this_thread::sleep_for(std::chrono::milliseconds(200));
+
+        BitchatPacket announcePacket = messageService->createAnnouncePacket();
+        if (bluetoothNetworkInterface->sendPacketToPeer(announcePacket, peripheralID))
+        {
+            spdlog::info("Sent announce packet to {}", peripheralID);
+        }
+        else
+        {
+            spdlog::warn("Failed to send announce packet to {}", peripheralID);
+        } })
+        .detach();
+}
+
 void NetworkService::onPacketReceived(const BitchatPacket &packet, const std::string &peripheralID)
 {
     // Delegate all packet processing to MessageService via callback
@@ -214,11 +264,6 @@ void NetworkService::relayPacket(const BitchatPacket &packet)
             bluetoothNetworkInterface->sendPacketToPeer(relayPacket, peer.getPeerID());
         }
     }
-}
-
-void NetworkService::setBluetoothNetworkInterface(std::shared_ptr<IBluetoothNetwork> bluetoothNetworkInterface)
-{
-    this->bluetoothNetworkInterface = bluetoothNetworkInterface;
 }
 
 } // namespace bitchat

@@ -24,6 +24,7 @@
 @property(nonatomic, copy) void (^peerConnectedCallback)(NSString *);
 @property(nonatomic, copy) void (^peerDisconnectedCallback)(NSString *);
 @property(nonatomic, copy) void (^packetReceivedCallback)(NSData *, NSString *);
+@property(nonatomic, copy) void (^peripheralDiscoveredCallback)(NSString *);
 
 // Initialization
 - (instancetype)init;
@@ -43,6 +44,7 @@
 // Callback setters
 - (void)setPeerDisconnectedCallback:(void (^)(NSString *peerID))callback;
 - (void)setPacketReceivedCallback:(void (^)(NSData *packetData, NSString *peripheralID))callback;
+- (void)setPeripheralDiscoveredCallback:(void (^)(NSString *peripheralID))callback;
 
 // Constants
 + (NSString *)serviceUUID;

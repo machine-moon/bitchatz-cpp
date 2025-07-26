@@ -16,6 +16,7 @@ class BitchatMessage;
 using PeerConnectedCallback = std::function<void(const std::string &peripheralID)>;
 using PeerDisconnectedCallback = std::function<void(const std::string &peripheralID)>;
 using PacketReceivedCallback = std::function<void(const BitchatPacket &packet, const std::string &peripheralID)>;
+using PeripheralDiscoveredCallback = std::function<void(const std::string &peripheralID)>;
 
 // Abstract Bluetooth network interface that platforms must implement
 // This interface handles only BLE transport, all business logic is in BitchatManager
@@ -46,6 +47,7 @@ public:
     virtual void setPeerConnectedCallback(PeerConnectedCallback callback) = 0;
     virtual void setPeerDisconnectedCallback(PeerDisconnectedCallback callback) = 0;
     virtual void setPacketReceivedCallback(PacketReceivedCallback callback) = 0;
+    virtual void setPeripheralDiscoveredCallback(PeripheralDiscoveredCallback callback) = 0;
 
     // Get connected peers count
     virtual size_t getConnectedPeersCount() const = 0;
