@@ -215,7 +215,9 @@ static NSString *const CHARACTERISTIC_UUID = @(bitchat::constants::BLE_CHARACTER
 - (BOOL)sendPacket:(NSData *)packetData
 {
     if (!self.ready)
+    {
         return NO;
+    }
 
     // Send to all connected peripherals (devices we're connected to)
     for (CBPeripheral *peripheral in self.connectedPeripherals.allValues)
@@ -292,6 +294,31 @@ static NSString *const CHARACTERISTIC_UUID = @(bitchat::constants::BLE_CHARACTER
     }
 
     // Peer not found
+    return NO;
+}
+
+/**
+ * @brief Send a packet to a specific peripheral by peripheralID
+ *
+ * This method finds the peripheral by its identifier and sends the packet.
+ * It's useful when we know the peripheralID but not the peerID.
+ *
+ * @param packetData The packet data to send
+ * @param peripheralID The target peripheral's identifier
+ * @return YES if sent successfully, NO if peripheral not found
+ */
+- (BOOL)sendPacket:(NSData *)packetData toPeripheralID:(NSString *)peripheralID
+{
+    // Find peripheral by peripheralID
+    for (CBPeripheral *peripheral in self.connectedPeripherals.allValues)
+    {
+        if ([peripheral.identifier.UUIDString isEqualToString:peripheralID])
+        {
+            return [self sendPacket:packetData toPeripheral:peripheral];
+        }
+    }
+
+    // Peripheral not found
     return NO;
 }
 

@@ -23,6 +23,7 @@ public:
     void stop() override;
     bool sendPacket(const BitchatPacket &packet) override;
     bool sendPacketToPeer(const BitchatPacket &packet, const std::string &peerID) override;
+    bool sendPacketToPeripheral(const BitchatPacket &packet, const std::string &peripheralID) override;
     bool isReady() const override;
 
     void setPeerConnectedCallback(PeerConnectedCallback callback) override;

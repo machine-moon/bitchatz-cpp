@@ -43,6 +43,9 @@ public:
     // Send a packet to a specific peer
     bool sendPacketToPeer(const BitchatPacket &packet, const std::string &peerID);
 
+    // Send a packet to a specific peripheral
+    bool sendPacketToPeripheral(const BitchatPacket &packet, const std::string &peripheralID);
+
     // Set callbacks
     using PacketReceivedCallback = std::function<void(const BitchatPacket &, const std::string &)>;
     using PeerConnectedCallback = std::function<void(const std::string &)>;

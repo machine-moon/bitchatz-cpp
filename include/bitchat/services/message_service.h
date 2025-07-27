@@ -1,6 +1,7 @@
 #pragma once
 
 #include "bitchat/core/bitchat_data.h"
+#include "bitchat/helpers/protocol_helper.h"
 #include "bitchat/protocol/packet.h"
 #include "bitchat/ui/ui_interface.h"
 #include <functional>
@@ -65,6 +66,10 @@ public:
     BitchatPacket createChannelAnnouncePacket(const std::string &channel, bool joining);
     BitchatPacket createVersionHelloPacket();
 
+    // Version negotiation
+    void sendVersionHello(const std::string &peripheralID);
+    void sendVersionAck(const VersionAck &ack, const std::string &peerID);
+
     // Set callbacks for message events
     using MessageReceivedCallback = std::function<void(const BitchatMessage &)>;
     using ChannelJoinedCallback = std::function<void(const std::string &)>;
@@ -97,7 +102,13 @@ private:
     PeerConnectedCallback peerConnectedCallback;
     PeerDisconnectedCallback peerDisconnectedCallback;
 
-    // Message-related packet processing
+    // Version hello packet processing
+    void processVersionHelloPacket(const BitchatPacket &packet);
+    void processVersionAckPacket(const BitchatPacket &packet);
+    void handleVersionHello(const std::string &peerID, const std::vector<uint8_t> &data);
+    void handleVersionAck(const std::string &peerID, const std::vector<uint8_t> &data);
+
+    // Message packet processing
     void processMessagePacket(const BitchatPacket &packet);
     void processChannelAnnouncePacket(const BitchatPacket &packet);
 

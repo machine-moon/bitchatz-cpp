@@ -147,6 +147,26 @@ bool AppleBluetoothNetworkBridge::sendPacketToPeer(const BitchatPacket &packet, 
     return [impl sendPacket:nsData toPeer:nsPeerID];
 }
 
+bool AppleBluetoothNetworkBridge::sendPacketToPeripheral(const BitchatPacket &packet, const std::string &peripheralID)
+{
+    if (!impl)
+    {
+        return false;
+    }
+
+    // Serialize C++ packet to raw bytes
+    std::vector<uint8_t> data = serializer->serializePacket(packet);
+
+    // Convert to NSData for Objective-C
+    NSData *nsData = [NSData dataWithBytes:data.data() length:data.size()];
+
+    // Convert std::string to NSString for Objective-C
+    NSString *nsPeripheralID = [NSString stringWithUTF8String:peripheralID.c_str()];
+
+    // Forward to Objective-C implementation
+    return [impl sendPacket:nsData toPeripheralID:nsPeripheralID];
+}
+
 bool AppleBluetoothNetworkBridge::isReady() const
 {
     if (!impl)

@@ -40,6 +40,9 @@ public:
     // Send packet to specific peer
     virtual bool sendPacketToPeer(const BitchatPacket &packet, const std::string &peerID) = 0;
 
+    // Send packet to specific peripheral by peripheralID
+    virtual bool sendPacketToPeripheral(const BitchatPacket &packet, const std::string &peripheralID) = 0;
+
     // Check if Bluetooth is ready
     virtual bool isReady() const = 0;
 

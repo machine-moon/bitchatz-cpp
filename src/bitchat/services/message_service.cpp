@@ -269,6 +269,12 @@ void MessageService::processPacket(const BitchatPacket &packet, const std::strin
 
     switch (packet.getType())
     {
+    case PKT_TYPE_VERSION_HELLO:
+        processVersionHelloPacket(packet);
+        break;
+    case PKT_TYPE_VERSION_ACK:
+        processVersionAckPacket(packet);
+        break;
     case PKT_TYPE_MESSAGE:
         processMessagePacket(packet);
         break;
@@ -297,6 +303,38 @@ void MessageService::processPacket(const BitchatPacket &packet, const std::strin
         spdlog::debug("Unhandled packet type: {}", packet.getTypeString());
         break;
     }
+}
+
+void MessageService::processVersionHelloPacket(const BitchatPacket &packet)
+{
+    std::string peerID = StringHelper::toHex(packet.getSenderID());
+    std::vector<uint8_t> data = packet.getPayload();
+
+    spdlog::debug("Processing version hello packet from peer: {}", peerID);
+
+    if (data.empty())
+    {
+        spdlog::error("Received empty version hello data from {}", peerID);
+        return;
+    }
+
+    handleVersionHello(peerID, data);
+}
+
+void MessageService::processVersionAckPacket(const BitchatPacket &packet)
+{
+    std::string peerID = StringHelper::toHex(packet.getSenderID());
+    std::vector<uint8_t> data = packet.getPayload();
+
+    spdlog::debug("Processing version ack packet from peer: {}", peerID);
+
+    if (data.empty())
+    {
+        spdlog::error("Received empty version ack data from {}", peerID);
+        return;
+    }
+
+    handleVersionAck(peerID, data);
 }
 
 void MessageService::processMessagePacket(const BitchatPacket &packet)
@@ -872,6 +910,230 @@ void MessageService::setPeerConnectedCallback(PeerConnectedCallback callback)
 void MessageService::setPeerDisconnectedCallback(PeerDisconnectedCallback callback)
 {
     peerDisconnectedCallback = callback;
+}
+
+void MessageService::handleVersionHello(const std::string &peerID, const std::vector<uint8_t> &data)
+{
+    if (data.empty())
+    {
+        spdlog::error("Received empty version hello data from {}", peerID);
+        return;
+    }
+
+    /*
+    // Check if we've already negotiated version with this peer
+    auto versionIt = negotiatedVersions.find(peerID);
+
+    if (versionIt != negotiatedVersions.end())
+    {
+        spdlog::debug("Already negotiated version {} with {}, skipping re-negotiation", versionIt->second, peerID);
+
+        // If we have a session, validate it
+        if (noiseService && noiseService->hasEstablishedSession(peerID))
+        {
+            // TODO: Implement validateNoiseSession
+            // validateNoiseSession(peerID);
+        }
+
+        return;
+    }
+    */
+
+    // Parse version hello payload
+    PacketSerializer serializer;
+    std::vector<uint8_t> supportedVersions;
+    uint8_t preferredVersion;
+    std::string clientVersion;
+    std::string platform;
+    std::vector<std::string> capabilities;
+
+    serializer.parseVersionHelloPayload(data, supportedVersions, preferredVersion, clientVersion, platform, capabilities);
+
+    spdlog::debug("Received version hello from {}: supported versions {}, preferred {}", peerID, [&supportedVersions]()
+                  {
+                      std::string result;
+                      for (size_t i = 0; i < supportedVersions.size(); ++i)
+                      {
+                          if (i > 0) result += ", ";
+                          result += std::to_string(supportedVersions[i]);
+                      }
+                      return result; }(), preferredVersion);
+
+    // Find the best common version
+    std::vector<uint8_t> ourVersions = ProtocolHelper::getSupportedVersions();
+    uint8_t agreedVersion = ProtocolHelper::negotiateVersion(supportedVersions, ourVersions);
+
+    if (agreedVersion > 0)
+    {
+        // We can communicate! Send ACK
+        spdlog::info("Version negotiation agreed with {}: v{} (client: {}, platform: {})", peerID, agreedVersion, clientVersion, platform);
+
+        /*
+        negotiatedVersions[peerID] = agreedVersion;
+        versionNegotiationState[peerID] = VersionNegotiationState::AckReceived;
+        */
+
+        VersionAck ack(agreedVersion, constants::CLIENT_VERSION, constants::PLATFORM);
+        sendVersionAck(ack, peerID);
+
+        // Check if peer exists in BitchatData, if not add it
+        auto peerInfo = BitchatData::shared()->getPeerInfo(peerID);
+        if (!peerInfo.has_value())
+        {
+            // Add peer to BitchatData with basic info
+            BitchatPeer newPeer(peerID, clientVersion); // Use clientVersion as nickname for now
+            BitchatData::shared()->addPeer(newPeer);
+            spdlog::info("Added new peer {} to BitchatData", peerID);
+        }
+
+        spdlog::info("Version negotiation complete with {} - lazy handshake mode", peerID);
+    }
+    else
+    {
+        // No compatible version
+        spdlog::warn("Version negotiation failed with {}: No compatible version (client supports: {})", peerID,
+                     [&supportedVersions]()
+                     {
+                         std::string result;
+                         for (size_t i = 0; i < supportedVersions.size(); ++i)
+                         {
+                             if (i > 0)
+                                 result += ", ";
+                             result += std::to_string(supportedVersions[i]);
+                         }
+                         return result;
+                     }());
+
+        /*
+        versionNegotiationState[peerID] = VersionNegotiationState::Failed;
+        */
+
+        std::string reason = "No compatible protocol version. Client supports: " +
+                             [&supportedVersions]()
+        {
+            std::string result;
+            for (size_t i = 0; i < supportedVersions.size(); ++i)
+            {
+                if (i > 0)
+                    result += ", ";
+                result += std::to_string(supportedVersions[i]);
+            }
+            return result;
+        }() + ", server supports: " +
+                             [&ourVersions]()
+        {
+            std::string result;
+            for (size_t i = 0; i < ourVersions.size(); ++i)
+            {
+                if (i > 0)
+                    result += ", ";
+                result += std::to_string(ourVersions[i]);
+            }
+            return result;
+        }();
+
+        VersionAck ack(0, constants::CLIENT_VERSION, constants::PLATFORM, true, reason);
+        sendVersionAck(ack, peerID);
+
+        // TODO: Implement disconnect logic
+        // Disconnect after a short delay
+    }
+}
+
+void MessageService::handleVersionAck(const std::string &peerID, const std::vector<uint8_t> &data)
+{
+    if (data.empty())
+    {
+        spdlog::error("Received empty version ack data from {}", peerID);
+        return;
+    }
+
+    // Parse version ack payload
+    PacketSerializer serializer;
+    uint8_t agreedVersion;
+    std::string serverVersion;
+    std::string platform;
+    bool rejected;
+    std::string reason;
+
+    serializer.parseVersionAckPayload(data, agreedVersion, serverVersion, platform, rejected, reason);
+
+    if (rejected)
+    {
+        spdlog::error("Version negotiation rejected by {}: {}", peerID, reason);
+        /*
+        versionNegotiationState[peerID] = VersionNegotiationState::Failed;
+        */
+
+        // Clean up state for incompatible peer
+        // Remove from BitchatData if exists
+        BitchatData::shared()->removePeer(peerID);
+
+        // Clean up any Noise session
+        // TODO: Implement cleanupPeerCryptoState
+        // cleanupPeerCryptoState(peerID)
+
+        // Notify delegate about incompatible peer disconnection
+        if (peerDisconnectedCallback)
+        {
+            peerDisconnectedCallback(peerID);
+        }
+    }
+    else
+    {
+        // Version negotiation successful
+        /*
+        negotiatedVersions[peerID] = agreedVersion;
+        versionNegotiationState[peerID] = VersionNegotiationState::AckReceived;
+        */
+
+        spdlog::info("Version negotiation successful with {}: v{} (server: {}, platform: {})", peerID, agreedVersion, serverVersion, platform);
+
+        // If we were the initiator (sent hello first), proceed with Noise handshake
+        // Note: Since we're handling their ACK, they initiated, so we should not initiate again
+        // The peer who sent hello will initiate the Noise handshake
+    }
+}
+
+void MessageService::sendVersionHello(const std::string &peripheralID)
+{
+    spdlog::debug("Sending version hello to peer: {}", peripheralID.empty() ? "broadcast" : peripheralID);
+
+    // Create version hello packet
+    BitchatPacket packet = createVersionHelloPacket();
+
+    // Send packet
+    if (peripheralID.empty())
+    {
+        // Broadcast to all
+        networkService->sendPacket(packet);
+    }
+    else
+    {
+        // Send to specific peripheral
+        networkService->sendPacketToPeripheral(packet, peripheralID);
+    }
+}
+
+void MessageService::sendVersionAck(const VersionAck &ack, const std::string &peerID)
+{
+    spdlog::debug("Sending version ack to peer: {} (agreed version: {}, rejected: {})", peerID, ack.agreedVersion, ack.rejected);
+
+    // Create version ack payload
+    PacketSerializer serializer;
+    std::vector<uint8_t> ackData = serializer.makeVersionAckPayload(ack.agreedVersion, ack.serverVersion, ack.platform, ack.rejected, ack.reason);
+
+    // Create packet
+    BitchatPacket packet(PKT_TYPE_VERSION_ACK, ackData);
+    packet.setSenderID(StringHelper::stringToVector(BitchatData::shared()->getPeerID()));
+    packet.setRecipientID(StringHelper::stringToVector(peerID));
+    packet.setTimestamp(DateTimeHelper::getCurrentTimestamp());
+
+    // Direct response, no relay
+    packet.setTTL(1);
+
+    // Send packet
+    networkService->sendPacket(packet);
 }
 
 } // namespace bitchat

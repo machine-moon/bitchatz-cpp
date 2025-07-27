@@ -163,6 +163,13 @@ bool LinuxBluetoothNetwork::sendPacketToPeer(const BitchatPacket &packet, const 
     return false;
 }
 
+bool LinuxBluetoothNetwork::sendPacketToPeripheral(const BitchatPacket &packet, const std::string &peripheralID)
+{
+    // In Linux implementation, peripheralID is the same as peerID (device address)
+    // So we can reuse the sendPacketToPeer implementation
+    return sendPacketToPeer(packet, peripheralID);
+}
+
 bool LinuxBluetoothNetwork::isReady() const
 {
     return deviceID >= 0 && hciSocket >= 0;

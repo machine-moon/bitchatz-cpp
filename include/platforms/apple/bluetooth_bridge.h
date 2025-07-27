@@ -83,6 +83,14 @@ public:
     bool sendPacketToPeer(const BitchatPacket &packet, const std::string &peerID) override;
 
     /**
+     * @brief Send a packet to a specific peripheral by peripheralID
+     * @param packet The packet to send
+     * @param peripheralID The target peripheral's identifier
+     * @return true if sent successfully, false otherwise
+     */
+    bool sendPacketToPeripheral(const BitchatPacket &packet, const std::string &peripheralID) override;
+
+    /**
      * @brief Check if Bluetooth system is ready for operations
      * @return true if ready, false otherwise
      */

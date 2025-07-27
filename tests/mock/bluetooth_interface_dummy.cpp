@@ -33,6 +33,11 @@ bool DummyBluetoothNetwork::sendPacketToPeer([[maybe_unused]] const BitchatPacke
     return true;
 }
 
+bool DummyBluetoothNetwork::sendPacketToPeripheral([[maybe_unused]] const BitchatPacket &packet, [[maybe_unused]] const std::string &peripheralID)
+{
+    return true;
+}
+
 bool DummyBluetoothNetwork::isReady() const
 {
     return true;

@@ -45,6 +45,6 @@ TEST(BitchatManagerTest, Initialize)
     ASSERT_TRUE(manager->start());
     manager->stop();
 
-    // Allow the mock to leak since it's managed by shared_ptr
-    testing::Mock::AllowLeak(bluetoothNetwork.get());
+    // Allow the mock to leak since it's managed by shared ptr
+    Mock::AllowLeak(bluetoothNetwork.get());
 }

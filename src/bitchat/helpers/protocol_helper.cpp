@@ -1,5 +1,7 @@
 #include "bitchat/helpers/protocol_helper.h"
+#include "bitchat/core/constants.h"
 #include <algorithm>
+#include <spdlog/spdlog.h>
 
 namespace bitchat
 {
@@ -34,19 +36,19 @@ bool ProtocolHelper::isValidChannelName(const std::string &channel)
         return false;
     }
 
-    // Check if the channel is too long
-    if (channel.length() > 50)
-    {
-        return false;
-    }
-
-    // Check if the channel starts with a #
+    // Check if the channel starts with #
     if (channel[0] != '#')
     {
         return false;
     }
 
-    // Check if it contains only alphanumeric characters and underscores
+    // Check if the channel is too long (more than 50 characters)
+    if (channel.length() > 50)
+    {
+        return false;
+    }
+
+    // Check if it contains only alphanumeric characters, underscores, and hyphens after the #
     // clang-format off
     return std::all_of(channel.begin() + 1, channel.end(), [](char c) {
         return std::isalnum(c) || c == '_' || c == '-';
@@ -56,14 +58,8 @@ bool ProtocolHelper::isValidChannelName(const std::string &channel)
 
 bool ProtocolHelper::isValidNickname(const std::string &nickname)
 {
-    // Check if the nickname is empty
-    if (nickname.empty())
-    {
-        return false;
-    }
-
-    // Check if the nickname is too long
-    if (nickname.length() > 32)
+    // Nickname should not be empty and should be reasonable length
+    if (nickname.empty() || nickname.length() > 32)
     {
         return false;
     }
@@ -74,6 +70,27 @@ bool ProtocolHelper::isValidNickname(const std::string &nickname)
         return std::isalnum(c) || c == '_' || c == '-';
     });
     // clang-format on
+}
+
+uint8_t ProtocolHelper::negotiateVersion(const std::vector<uint8_t> &clientVersions, const std::vector<uint8_t> &serverVersions)
+{
+    // Find the highest common version between client and server
+    for (auto it = clientVersions.rbegin(); it != clientVersions.rend(); ++it)
+    {
+        if (std::find(serverVersions.begin(), serverVersions.end(), *it) != serverVersions.end())
+        {
+            return *it;
+        }
+    }
+
+    // No compatible version found
+    return 0;
+}
+
+std::vector<uint8_t> ProtocolHelper::getSupportedVersions()
+{
+    // Currently only support version 1
+    return {1};
 }
 
 } // namespace bitchat

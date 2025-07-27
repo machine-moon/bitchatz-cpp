@@ -158,6 +158,16 @@ bool NetworkService::sendPacketToPeer(const BitchatPacket &packet, const std::st
     return bluetoothNetworkInterface->sendPacketToPeer(packet, peerID);
 }
 
+bool NetworkService::sendPacketToPeripheral(const BitchatPacket &packet, const std::string &peripheralID)
+{
+    if (!bluetoothNetworkInterface)
+    {
+        return false;
+    }
+
+    return bluetoothNetworkInterface->sendPacketToPeripheral(packet, peripheralID);
+}
+
 void NetworkService::setPacketReceivedCallback(PacketReceivedCallback callback)
 {
     packetReceivedCallback = callback;
@@ -204,32 +214,25 @@ void NetworkService::onPeripheralDiscovered(const std::string &peripheralID)
     }
 
     // Send version hello packet first
-    BitchatPacket versionPacket = messageService->createVersionHelloPacket();
-    if (bluetoothNetworkInterface->sendPacketToPeer(versionPacket, peripheralID))
-    {
-        spdlog::info("Sent version hello packet to {}", peripheralID);
-    }
-    else
-    {
-        spdlog::warn("Failed to send version hello packet to {}", peripheralID);
-    }
+    messageService->sendVersionHello(peripheralID);
 
-    // Send announce packet after a short delay (simulating the Swift code behavior)
-    // Note: In a real implementation, you might want to use a timer or async approach
-    std::thread([this, peripheralID]()
-                {
+    // clang-format off
+    // Send announce packet after a short delay
+    std::thread([this, peripheralID]() {
         std::this_thread::sleep_for(std::chrono::milliseconds(200));
 
         BitchatPacket announcePacket = messageService->createAnnouncePacket();
-        if (bluetoothNetworkInterface->sendPacketToPeer(announcePacket, peripheralID))
+
+        if (bluetoothNetworkInterface->sendPacketToPeripheral(announcePacket, peripheralID))
         {
             spdlog::info("Sent announce packet to {}", peripheralID);
         }
         else
         {
             spdlog::warn("Failed to send announce packet to {}", peripheralID);
-        } })
-        .detach();
+        }
+    }).detach();
+    // clang-format on
 }
 
 void NetworkService::onPacketReceived(const BitchatPacket &packet, const std::string &peripheralID)

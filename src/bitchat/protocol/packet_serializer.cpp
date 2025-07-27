@@ -758,4 +758,120 @@ void PacketSerializer::parseVersionHelloPayload(const std::vector<uint8_t> &payl
     }
 }
 
+std::vector<uint8_t> PacketSerializer::makeVersionAckPayload(uint8_t agreedVersion, const std::string &serverVersion, const std::string &platform, bool rejected, const std::string &reason)
+{
+    std::vector<uint8_t> data;
+
+    // Flags byte: bit 0 = rejected, bit 1 = hasReason
+    uint8_t flags = 0;
+    if (rejected)
+    {
+        flags |= 0x01;
+    }
+    if (!reason.empty())
+    {
+        flags |= 0x02;
+    }
+    writeUint8(data, flags);
+
+    // Agreed version
+    writeUint8(data, agreedVersion);
+
+    // Server version (string with length prefix)
+    writeUint8(data, static_cast<uint8_t>(std::min(static_cast<size_t>(255), serverVersion.length())));
+    data.insert(data.end(), serverVersion.begin(), serverVersion.begin() + std::min(static_cast<size_t>(255), serverVersion.length()));
+
+    // Platform (string with length prefix)
+    writeUint8(data, static_cast<uint8_t>(std::min(static_cast<size_t>(255), platform.length())));
+    data.insert(data.end(), platform.begin(), platform.begin() + std::min(static_cast<size_t>(255), platform.length()));
+
+    // Reason (if present)
+    if (!reason.empty())
+    {
+        writeUint8(data, static_cast<uint8_t>(std::min(static_cast<size_t>(255), reason.length())));
+        data.insert(data.end(), reason.begin(), reason.begin() + std::min(static_cast<size_t>(255), reason.length()));
+    }
+
+    return data;
+}
+
+void PacketSerializer::parseVersionAckPayload(const std::vector<uint8_t> &payload, uint8_t &agreedVersion, std::string &serverVersion, std::string &platform, bool &rejected, std::string &reason)
+{
+    // Minimum size check: flags(1) + agreedVersion(1) + min strings
+    if (payload.size() < 3)
+    {
+        spdlog::error("Version ack payload too short");
+        return;
+    }
+
+    size_t offset = 0;
+
+    // Flags byte
+    uint8_t flags = readUint8(payload, offset);
+    rejected = (flags & 0x01) != 0;
+    bool hasReason = (flags & 0x02) != 0;
+
+    // Agreed version
+    if (offset >= payload.size())
+    {
+        spdlog::error("Version ack payload buffer overflow reading agreed version");
+        return;
+    }
+    agreedVersion = readUint8(payload, offset);
+
+    // Server version (string with length prefix)
+    if (offset >= payload.size())
+    {
+        spdlog::error("Version ack payload buffer overflow reading server version length");
+        return;
+    }
+    uint8_t serverVersionLen = readUint8(payload, offset);
+
+    if (offset + serverVersionLen > payload.size())
+    {
+        spdlog::error("Version ack payload buffer overflow reading server version");
+        return;
+    }
+
+    serverVersion = std::string(payload.begin() + offset, payload.begin() + offset + serverVersionLen);
+    offset += serverVersionLen;
+
+    // Platform (string with length prefix)
+    if (offset >= payload.size())
+    {
+        spdlog::error("Version ack payload buffer overflow reading platform length");
+        return;
+    }
+    uint8_t platformLen = readUint8(payload, offset);
+
+    if (offset + platformLen > payload.size())
+    {
+        spdlog::error("Version ack payload buffer overflow reading platform");
+        return;
+    }
+
+    platform = std::string(payload.begin() + offset, payload.begin() + offset + platformLen);
+    offset += platformLen;
+
+    // Reason (if present)
+    reason.clear();
+    if (hasReason)
+    {
+        if (offset >= payload.size())
+        {
+            spdlog::error("Version ack payload buffer overflow reading reason length");
+            return;
+        }
+        uint8_t reasonLen = readUint8(payload, offset);
+
+        if (offset + reasonLen > payload.size())
+        {
+            spdlog::error("Version ack payload buffer overflow reading reason");
+            return;
+        }
+
+        reason = std::string(payload.begin() + offset, payload.begin() + offset + reasonLen);
+    }
+}
+
 } // namespace bitchat

@@ -43,6 +43,12 @@ public:
     // Parse version hello payload
     void parseVersionHelloPayload(const std::vector<uint8_t> &payload, std::vector<uint8_t> &supportedVersions, uint8_t &preferredVersion, std::string &clientVersion, std::string &platform, std::vector<std::string> &capabilities);
 
+    // Create version ack payload
+    std::vector<uint8_t> makeVersionAckPayload(uint8_t agreedVersion, const std::string &serverVersion, const std::string &platform, bool rejected, const std::string &reason);
+
+    // Parse version ack payload
+    void parseVersionAckPayload(const std::vector<uint8_t> &payload, uint8_t &agreedVersion, std::string &serverVersion, std::string &platform, bool &rejected, std::string &reason);
+
     // Create packet with proper fields
     BitchatPacket makePacket(uint8_t type, const std::vector<uint8_t> &payload, bool hasRecipient, bool hasSignature, const std::string &senderID);
 

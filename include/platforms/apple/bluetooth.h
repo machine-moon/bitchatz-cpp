@@ -36,6 +36,7 @@
 - (BOOL)sendPacket:(NSData *)packetData;
 - (BOOL)sendPacket:(NSData *)packetData toPeripheral:(CBPeripheral *)peripheral;
 - (BOOL)sendPacket:(NSData *)packetData toPeer:(NSString *)peerID;
+- (BOOL)sendPacket:(NSData *)packetData toPeripheralID:(NSString *)peripheralID;
 
 // State
 - (BOOL)isReady;
