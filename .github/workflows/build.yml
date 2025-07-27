@@ -50,12 +50,18 @@ jobs:
           cmake --version
           ninja --version
 
-      - name: Build
+      - name: Test
         run: |
           rm -rf build
           cmake -B build . -G Ninja -DCMAKE_BUILD_TYPE=Debug -DENABLE_TESTS=ON -DENABLE_ASAN=OFF -DBUILD_EXECUTABLE=OFF
           cmake --build build
           cd build && ctest --output-on-failure --verbose
+
+      - name: Build
+        run: |
+          rm -rf build
+          cmake -B build . -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_EXECUTABLE=ON
+          cmake --build build
 
       - name: Package
         run: |
