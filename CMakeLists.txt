@@ -26,6 +26,8 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
 # Include CPM for dependency management
 include(cmake/CPM.cmake)
+set(CPM_SOURCE_CACHE "${CMAKE_SOURCE_DIR}/dependencies")
+
 
 # Include custom functions
 include(cmake/functions.cmake)

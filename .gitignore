@@ -1,3 +1,11 @@
+# bitchat
+/*.pem
+/*.log
+/peers_keys.txt
+/temp
+/data
+dependencies/
+
 # os
 Thumbs.db
 .DS_Store
@@ -46,10 +54,3 @@ build_*/
 *.egg-info
 .pytest_cache
 poetry.lock
-
-# bitchat
-/*.pem
-/*.log
-/peers_keys.txt
-/temp
-/data
